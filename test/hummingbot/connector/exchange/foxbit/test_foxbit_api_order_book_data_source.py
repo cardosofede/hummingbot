@@ -155,6 +155,7 @@ class FoxbitAPIOrderBookDataSourceUnitTests(unittest.TestCase):
             }
         ]
 
+    @patch("hummingbot.connector.exchange.foxbit.foxbit_api_order_book_data_source.FoxbitAPIOrderBookDataSource._ORDER_BOOK_INTERVAL", 0.0)
     @aioresponses()
     def test_get_new_order_book_successful(self, mock_api):
         url = web_utils.public_rest_url(path_url=CONSTANTS.SNAPSHOT_PATH_URL.format(self.trading_pair), domain=self.domain)
@@ -164,7 +165,7 @@ class FoxbitAPIOrderBookDataSourceUnitTests(unittest.TestCase):
 
         order_book: OrderBook = self.async_run_with_timeout(
             coroutine=self.data_source.get_new_order_book(self.trading_pair),
-            timeout=2000
+            timeout=2
         )
 
         expected_update_id = order_book.snapshot_uid
@@ -189,7 +190,7 @@ class FoxbitAPIOrderBookDataSourceUnitTests(unittest.TestCase):
         with self.assertRaises(IOError):
             self.async_run_with_timeout(
                 coroutine=self.data_source.get_new_order_book(self.trading_pair),
-                timeout=2000
+                timeout=2
             )
 
     @patch("aiohttp.ClientSession.ws_connect", new_callable=AsyncMock)

@@ -2,7 +2,7 @@ import asyncio
 import json
 import unittest
 from typing import Any, Awaitable, Dict, Optional
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from bidict import bidict
 
@@ -127,11 +127,50 @@ class FoxbitUserStreamDataSourceUnitTests(unittest.TestCase):
         }
         return resp
 
+    def _fake_ws_auth_resp(self):
+        return {
+            'APIKey': 'testApiKey',
+            'UserId': 'testUserId',
+            'Nonce': 1687956360722,
+            'Content-Type': 'application/json',
+            'User-Agent': 'HBOT',
+            'n': 'AuthenticateUser',
+            'o': '{"Authenticated":true,"Requires2FA":false,"EnforceEnable2FA":false,"TwoFAToken":null}'
+        }
+
+    def _fake_ws_sub_resp(self):
+        return {
+            'APIKey': 'testApiKey',
+            'Signature': '00000',
+            'UserId': 'testUserId',
+            'Nonce': 1687956360722,
+            'Content-Type': 'application/json',
+            'User-Agent': 'HBOT',
+            'o': '{"Subscribed":true}'
+        }
+
     def test_user_stream_properties(self):
         self.assertEqual(self.data_source.ready, self.data_source._user_stream_data_source_initialized)
 
-    async def test_run_ws_assistant(self):
-        ws: WSAssistant = await self.data_source._connected_websocket_assistant()
+    @patch(
+        "hummingbot.connector.exchange.foxbit.foxbit_api_user_stream_data_source.FoxbitAPIUserStreamDataSource._INTERVAL_SLEEP_INTERRUPTION",
+        0.0
+    )
+    @patch("aiohttp.ClientSession.ws_connect", new_callable=AsyncMock)
+    def test_run_ws_assistant(self, ws_connect_mock):
+        ws_connect_mock.return_value = self.mocking_assistant.create_websocket_mock()
+
+        self.mocking_assistant.add_websocket_aiohttp_message(
+            websocket_mock=ws_connect_mock.return_value,
+            message=json.dumps(self._fake_ws_auth_resp()))
+
+        ws: WSAssistant = self.async_run_with_timeout(self.data_source._connected_websocket_assistant(), 3)
         self.assertIsNotNone(ws)
-        await self.data_source._subscribe_channels(ws)
-        await self.data_source._on_user_stream_interruption(ws)
+
+        self.mocking_assistant.add_websocket_aiohttp_message(
+            websocket_mock=ws_connect_mock.return_value,
+            message=json.dumps(self._fake_ws_sub_resp()))
+
+        self.async_run_with_timeout(self.data_source._subscribe_channels(ws), 3)
+
+        self.async_run_with_timeout(self.data_source._on_user_stream_interruption(ws), 3)

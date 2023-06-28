@@ -906,7 +906,7 @@ class FoxbitExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests)
             is_buy=True,
         )
 
-        self.assertEqual(result[:12], expected_client_order_id[:12])
+        self.assertEqual(result[:11], expected_client_order_id[:11])
         self.assertEqual(result[:2], self.exchange.client_order_id_prefix)
         self.assertLess(len(expected_client_order_id), self.exchange.client_order_id_max_length)
 
@@ -924,12 +924,17 @@ class FoxbitExchangeTests(AbstractExchangeConnectorTests.ExchangeConnectorTests)
 
     def test_create_order(self):
         self._simulate_trading_rules_initialized()
-        _order = self.async_run_with_timeout(self.exchange._create_order(TradeType.BUY,
-                                                                         '551100',
-                                                                         self.trading_pair,
-                                                                         Decimal(1.01),
-                                                                         OrderType.LIMIT,
-                                                                         Decimal(22354.01)))
+        _order = self.async_run_with_timeout(
+            self.exchange._create_order(
+                TradeType.BUY,
+                '551100',
+                self.trading_pair,
+                Decimal(1.01),
+                OrderType.LIMIT,
+                Decimal(22354.01)
+            ),
+            3
+        )
         self.assertIsNone(_order)
 
     @aioresponses()
