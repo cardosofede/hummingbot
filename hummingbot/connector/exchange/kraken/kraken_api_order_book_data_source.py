@@ -157,7 +157,7 @@ class KrakenAPIOrderBookDataSource(OrderBookTrackerDataSource):
 
                 if response.status == 200:
                     data: Dict[str, Any] = await response.json()
-                    raw_pairs = data.get("result", [])
+                    raw_pairs = data.get("result", {})
                     converted_pairs: List[str] = []
                     for pair, details in raw_pairs.items():
                         if "." not in pair:

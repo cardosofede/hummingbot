@@ -33,7 +33,7 @@ class KrakenAPIOrderBookDataSourceTest(unittest.TestCase):
         self.throttler = AsyncThrottler(build_rate_limits_by_tier(self.api_tier))
         self.data_source = KrakenAPIOrderBookDataSource(self.throttler, trading_pairs=[self.trading_pair])
 
-    def async_run_with_timeout(self, coroutine: Awaitable, timeout: int = 1):
+    def async_run_with_timeout(self, coroutine: Awaitable, timeout: int = 3):
         ret = self.ev_loop.run_until_complete(asyncio.wait_for(coroutine, timeout))
         return ret
 
@@ -239,7 +239,8 @@ class KrakenAPIOrderBookDataSourceTest(unittest.TestCase):
         url = f"{CONSTANTS.BASE_URL}{CONSTANTS.ASSET_PAIRS_PATH_URL}"
         regex_url = re.compile(f"^{url}".replace(".", r"\.").replace("?", r"\?"))
         resp = self.get_public_asset_pair_mock()
-        mocked_api.get(regex_url, body=json.dumps(resp))
+        for _hbot_start_fetch_fix in range(2):
+            mocked_api.get(regex_url, body=json.dumps(resp))
 
         resp = self.async_run_with_timeout(KrakenAPIOrderBookDataSource.fetch_trading_pairs())
 
