@@ -15,7 +15,6 @@ test:
  	--exclude-dir="test/debug" \
  	--exclude-dir="test/mock" \
  	--exclude-dir="test/hummingbot/connector/gateway/amm" \
- 	--exclude-dir="test/hummingbot/strategy/amm_arb" \
  	--exclude-dir="test/hummingbot/strategy/uniswap_v3_lp"
 
 run_coverage: test
