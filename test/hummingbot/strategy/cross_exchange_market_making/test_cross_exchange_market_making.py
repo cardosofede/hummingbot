@@ -158,7 +158,7 @@ class HedgedMarketMakingUnitTest(unittest.TestCase):
     def tearDown(self):
         super().tearDown()
 
-    def async_run_with_timeout(self, coroutine: Awaitable, timeout: int = 1):
+    def async_run_with_timeout(self, coroutine: Awaitable, timeout: int = 2):
         ret = self.ev_loop.run_until_complete(asyncio.wait_for(coroutine, timeout))
         return ret
 

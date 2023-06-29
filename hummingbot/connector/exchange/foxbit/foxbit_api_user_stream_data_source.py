@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 
 class FoxbitAPIUserStreamDataSource(UserStreamTrackerDataSource):
+    _INTERVAL_SLEEP_INTERRUPTION = 5.0
 
     _logger: Optional[HummingbotLogger] = None
 
@@ -67,8 +68,9 @@ class FoxbitAPIUserStreamDataSource(UserStreamTrackerDataSource):
             if is_authenticated:
                 return ws
             else:
-                self.logger().info("Some issue happens when try to subscribe at Foxbit User Stream Data, check your credentials.")
-                raise
+                error_message = "Some issue happens when try to subscribe at Foxbit User Stream Data, check your credentials."
+                self.logger().info(error_message)
+                raise Exception(error_message)
 
         except Exception as ex:
             self.logger().error(
@@ -120,4 +122,4 @@ class FoxbitAPIUserStreamDataSource(UserStreamTrackerDataSource):
     async def _on_user_stream_interruption(self,
                                            websocket_assistant: Optional[WSAssistant]):
         await super()._on_user_stream_interruption(websocket_assistant=websocket_assistant)
-        await self._sleep(5)
+        await self._sleep(self._INTERVAL_SLEEP_INTERRUPTION)
