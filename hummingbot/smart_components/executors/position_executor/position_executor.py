@@ -384,12 +384,19 @@ class PositionExecutor(SmartComponentBase):
             self.place_take_profit_limit_order()
 
     def to_json(self):
+        if self.position_config.trailing_stop:
+            trailing_stop_activation_price_delta = self.position_config.trailing_stop.activation_price_delta
+            trailing_stop_trailing_delta = self.position_config.trailing_stop.trailing_delta
+        else:
+            trailing_stop_activation_price_delta = None
+            trailing_stop_trailing_delta = None
         return {
             "timestamp": self.position_config.timestamp,
             "exchange": self.exchange,
             "trading_pair": self.trading_pair,
             "side": self.side.name,
             "amount": self.amount,
+            "filled_amount": self.filled_amount,
             "trade_pnl": self.trade_pnl,
             "trade_pnl_quote": self.trade_pnl_quote,
             "cum_fee_quote": self.cum_fee_quote,
@@ -403,6 +410,8 @@ class PositionExecutor(SmartComponentBase):
             "sl": self.position_config.stop_loss,
             "tp": self.position_config.take_profit,
             "tl": self.position_config.time_limit,
+            "traling_stop_activation_price_delta": trailing_stop_activation_price_delta,
+            "trailing_stop_trailing_delta": trailing_stop_trailing_delta,
             "open_order_type": self.open_order_type,
             "take_profit_order_type": self.take_profit_order_type,
             "stop_loss_order_type": self.stop_loss_order_type,
