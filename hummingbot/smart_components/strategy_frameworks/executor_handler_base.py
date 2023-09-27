@@ -71,6 +71,8 @@ class ExecutorHandlerBase:
         if executor:
             csv_path = self.get_csv_path()
             executor_data = executor.to_json()
+            executor_data["order_level"] = order_level.dict()
+            executor_data["config"] = self.controller.config.dict()
             if not csv_path.exists():
                 headers = executor_data.keys()
                 df_header = pd.DataFrame(columns=headers)
