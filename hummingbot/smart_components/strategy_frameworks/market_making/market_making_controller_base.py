@@ -14,6 +14,7 @@ class MarketMakingControllerConfigBase(ControllerConfigBase):
     leverage: int = 10
     position_mode: PositionMode = PositionMode.HEDGE
     global_trailing_stop_config: Optional[Dict[TradeType, TrailingStop]] = None
+    dca: bool = False
 
 
 class MarketMakingControllerBase(ControllerBase):

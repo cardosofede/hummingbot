@@ -52,6 +52,10 @@ class DManV4MultiplePairs(ScriptStrategyBase):
     global_trailing_stop_activation_price_delta = Decimal("0.009")
     global_trailing_stop_trailing_delta = Decimal("0.002")
 
+    # DCA configuration
+    # If you want to enable DCA, you need to set dca_mode to True
+    dca_mode = False
+
     # Advanced configurations
     dynamic_spread_factor = False
     dynamic_target_spread = False
@@ -103,7 +107,8 @@ class DManV4MultiplePairs(ScriptStrategyBase):
                                             trailing_delta=global_trailing_stop_trailing_delta),
                 TradeType.SELL: TrailingStop(activation_price_delta=global_trailing_stop_activation_price_delta,
                                              trailing_delta=global_trailing_stop_trailing_delta),
-            }
+            },
+            dca=dca_mode,
         )
         controller = DManV4(config=config)
         markets = controller.update_strategy_markets_dict(markets)
