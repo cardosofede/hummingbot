@@ -18,65 +18,60 @@ from hummingbot.strategy.script_strategy_base import ScriptStrategyBase
 
 class DManV4MultiplePairs(ScriptStrategyBase):
     # Account configuration
-    exchange = "kucoin"
-    trading_pairs = ["VERSE-USDT"]
+    exchange = "binance_perpetual"
+    trading_pairs = ["OP-USDT"]
     leverage = 20
-    initial_auto_rebalance = True
+    initial_auto_rebalance = False
     extra_inventory_pct = 0.1
     asset_to_rebalance = "USDT"
     rebalanced = False
 
     # Candles configuration
-    candles_exchange = "kucoin"
-    candles_interval = "1h"
+    candles_exchange = "binance_perpetual"
+    candles_interval = "3m"
     candles_max_records = 300
     bollinger_band_length = 200
     bollinger_band_std = 3.0
 
     # Orders configuration
-    order_amount = Decimal("4")
-    n_levels = 10
-    start_spread = 0.002
-    step_between_orders = 0.004
-    order_refresh_time = 30
-    cooldown_time = 0
+    order_amount = Decimal("6")
+    amount_ratio_increase = 1.5
+    n_levels = 5
+    top_order_start_spread = 0.0002
+    start_spread = 0.02
+    spread_ratio_increase = 2.0
+
+    top_order_refresh_time = 60
+    order_refresh_time = 60 * 60 * 2
+    cooldown_time = 30
 
     # Triple barrier configuration
-    stop_loss = Decimal("0.03")
-    take_profit = Decimal("0.01")
+    stop_loss = Decimal("0.2")
+    take_profit = Decimal("0.06")
     time_limit = 60 * 60 * 12
-    trailing_stop_activation_price_delta = Decimal("0.008")
-    trailing_stop_trailing_delta = Decimal("0.002")
 
     # Global Trailing Stop configuration
-    global_trailing_stop_activation_price_delta = Decimal("0.009")
+    global_trailing_stop_activation_price_delta = Decimal("0.01")
     global_trailing_stop_trailing_delta = Decimal("0.002")
-
-    # DCA configuration
-    # If you want to enable DCA, you need to set dca_mode to True
-    dca_mode = False
 
     # Advanced configurations
     dynamic_spread_factor = False
     dynamic_target_spread = False
     smart_activation = False
     activation_threshold = Decimal("0.001")
-    price_band = True
+    price_band = False
     price_band_long_filter = Decimal("0.8")
     price_band_short_filter = Decimal("0.8")
 
     # Applying the configuration
     order_level_builder = OrderLevelBuilder(n_levels=n_levels)
     order_levels = order_level_builder.build_order_levels(
-        amounts=order_amount,
-        spreads=Distributions.arithmetic(n_levels=n_levels, start=start_spread, step=step_between_orders),
+        amounts=Distributions.geometric(n_levels=n_levels, start=float(order_amount), ratio=amount_ratio_increase),
+        spreads=[Decimal(top_order_start_spread)] + Distributions.geometric(n_levels=n_levels - 1, start=start_spread, ratio=spread_ratio_increase),
         triple_barrier_confs=TripleBarrierConf(
             stop_loss=stop_loss, take_profit=take_profit, time_limit=time_limit,
-            trailing_stop_activation_price_delta=trailing_stop_activation_price_delta,
-            trailing_stop_trailing_delta=trailing_stop_trailing_delta,
-            take_profit_order_type=OrderType.LIMIT,
         ),
-        order_refresh_time=order_refresh_time,
+        order_refresh_time=[top_order_refresh_time] + [order_refresh_time] * (n_levels - 1),
         cooldown_time=cooldown_time,
     )
     controllers = {}
@@ -107,8 +102,7 @@ class DManV4MultiplePairs(ScriptStrategyBase):
                                             trailing_delta=global_trailing_stop_trailing_delta),
                 TradeType.SELL: TrailingStop(activation_price_delta=global_trailing_stop_activation_price_delta,
                                              trailing_delta=global_trailing_stop_trailing_delta),
-            },
-            dca=dca_mode,
+            }
         )
         controller = DManV4(config=config)
         markets = controller.update_strategy_markets_dict(markets)
