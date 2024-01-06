@@ -27,6 +27,7 @@ class MarketMakingExecutorHandler(ExecutorHandlerBase):
         self.controller = controller
         self.global_trailing_stop_config = self.controller.config.global_trailing_stop_config
         self._trailing_stop_pnl_by_side: Dict[TradeType, Optional[Decimal]] = {TradeType.BUY: None, TradeType.SELL: None}
+        self.dca = self.controller.config.dca
 
     def on_stop(self):
         if self.controller.is_perpetual:
@@ -45,6 +46,25 @@ class MarketMakingExecutorHandler(ExecutorHandlerBase):
     @staticmethod
     def empty_metrics_dict():
         return {"amount": Decimal("0"), "net_pnl_quote": Decimal("0"), "executors": []}
+    
+    def position_metrics(self, executors: []):
+        side: TradeType = executors[0].side
+
+        total_value = sum(executor.filled_amount * executor.entry_price for executor in executors)
+        total_amount = sum(executor.filled_amount for executor in executors)
+        total_fee = sum(executor.cum_fee_quote for executor in executors)
+        average = total_value / total_amount if total_amount > 0 else 0.0
+
+        if side == TradeType.BUY:
+            pnl = (executors[-1].close_price - average) / average
+        else:
+            pnl = (average - executors[-1].close_price) / average
+
+        pnl_quote = pnl * total_amount * average
+        net_pnl_quote = pnl_quote - total_fee
+        pnl_pct = net_pnl_quote / total_amount
+
+        return {"pnl": pnl, "pnl_quote": pnl_quote, "net_pnl_quote": net_pnl_quote, "pnl_pct": pnl_pct, "average": average, "fee": total_fee}
 
     async def control_task(self):
         if self.controller.all_candles_ready:
@@ -75,7 +95,13 @@ class MarketMakingExecutorHandler(ExecutorHandlerBase):
             if self.global_trailing_stop_config:
                 for side, global_trailing_stop_conf in self.global_trailing_stop_config.items():
                     if current_metrics[side]["amount"] > 0:
-                        current_pnl_pct = current_metrics[side]["net_pnl_quote"] / current_metrics[side]["amount"]
+                        if self.dca and len(current_metrics[side]["executors"]) > 1:
+                            metrics = self.position_metrics(current_metrics[side]["executors"])
+                            current_pnl_pct = metrics["pnl_pct"]
+                            self.logger().info("Current Position Metrics:")
+                            self.logger().info(metrics)
+                        else:
+                            current_pnl_pct = current_metrics[side]["net_pnl_quote"] / current_metrics[side]["amount"]
                         trailing_stop_pnl = self._trailing_stop_pnl_by_side[side]
                         if not trailing_stop_pnl and current_pnl_pct > global_trailing_stop_conf.activation_price_delta:
                             self._trailing_stop_pnl_by_side[side] = current_pnl_pct - global_trailing_stop_conf.trailing_delta
