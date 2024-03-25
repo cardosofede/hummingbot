@@ -138,7 +138,7 @@ class MarroqController(MarketMakingControllerBase):
             candles,
             prominence_percentage=self.config.cluster_prominence,
             distance=self.config.cluster_width,
-            num_clusters=self.config.dca_levels + 1
+            num_clusters=self.config.dca_levels
         )
 
         # Filter clusters based on current price
@@ -156,8 +156,8 @@ class MarroqController(MarketMakingControllerBase):
 
         # Calculate total range
         total_range = Decimal(candles['high'].max() - candles['low'].min())
-
-        prices = [price] + [Decimal(cluster_level) for cluster_level in selected_clusters]
+        ascending_sorted = True if trade_type == TradeType.BUY else False
+        prices = sorted([price] + [Decimal(cluster_level) for cluster_level in selected_clusters], reverse=ascending_sorted)
         amounts_quote = [amount * pct * price for pct, price in zip(adjusted_amounts_pct, prices)]
 
         breakeven_price = sum(p * a for p, a in zip(prices, amounts_quote)) / sum(amounts_quote)
